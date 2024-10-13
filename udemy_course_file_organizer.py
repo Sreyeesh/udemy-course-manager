@@ -6,78 +6,64 @@ courses_base_dir = r"C:\Users\sgari\UdemyCourses"
 
 # Define the naming convention structure
 file_extension = ".mp4"
-# Define a dictionary for course-specific names
-course_names = {
-    "GitHubDesktopCourse": "GitHubDesktop",
-    "Docker_2024": "Docker"
+# Define a dictionary for course-specific names and years
+courses = {
+    "Docker": 2024,
+    "GitHubDesktop": 2024,
+    "Python": 2024
 }
 
-# Function to move all .mp4 files from subdirectories to the root
-def move_files_to_root(course_dir, file_extension):
-    for root, dirs, files in os.walk(course_dir):
-        for file in files:
-            if file.endswith(file_extension):
-                # Define source (current location) and destination (root directory)
-                source = os.path.join(root, file)
-                destination = os.path.join(course_dir, file)
-                
-                # Move file to root if it's not already there
-                if source != destination:
-                    shutil.move(source, destination)
-                    print(f"Moved {file} to {course_dir}")
+# Function to create a course directory name based on the naming convention
+def get_course_directory_name(course_name, year):
+    return f"{course_name}_{year}"
 
-# Function to rename files in the root directory of each course
-def rename_files_in_directory(course_dir, course_name, file_extension):
-    # List all files in the root directory
-    files = [f for f in os.listdir(course_dir) if f.endswith(file_extension)]
-    
-    # Sort files if needed, for example, alphabetically
-    files.sort()
+# Function to create a course directory if it doesn't exist
+def create_course_directory(course_dir):
+    if not os.path.exists(course_dir):
+        os.makedirs(course_dir)
+        print(f"Created course directory: {course_dir}")
+    else:
+        print(f"Directory already exists: {course_dir}")
 
-    for idx, filename in enumerate(files, start=1):
-        # Pad the lesson number to two digits
-        lesson_number = str(idx).zfill(2)
+# Function to move files from old directories to new directories
+def move_files_to_new_directory(old_dir, new_dir, file_extension):
+    for file in os.listdir(old_dir):
+        if file.endswith(file_extension):
+            source = os.path.join(old_dir, file)
+            destination = os.path.join(new_dir, file)
+            shutil.move(source, destination)
+            print(f"Moved {file} from {old_dir} to {new_dir}")
 
-        # Create the new filename with the proper format
-        new_filename = f"{course_name}_Lesson_{lesson_number}{file_extension}"
-        
-        # Define the full file paths
-        old_file_path = os.path.join(course_dir, filename)
-        new_file_path = os.path.join(course_dir, new_filename)
-
-        # Rename the file
-        os.rename(old_file_path, new_file_path)
-        print(f"Renamed {filename} to {new_filename}")
-
-# Function to remove empty subdirectories after files have been moved
-def remove_empty_subdirs(course_dir):
-    for root, dirs, _ in os.walk(course_dir, topdown=False):
-        for dir_name in dirs:
-            dir_path = os.path.join(root, dir_name)
-            
-            # Check if the directory is empty
-            if not os.listdir(dir_path):
-                os.rmdir(dir_path)
-                print(f"Removed empty directory: {dir_path}")
+# Function to check if all files have been moved and delete the old folder if it's empty
+def remove_old_folder_if_empty(old_dir):
+    if not os.listdir(old_dir):
+        os.rmdir(old_dir)
+        print(f"Removed empty old folder: {old_dir}")
+    else:
+        print(f"Old folder is not empty: {old_dir}")
 
 # Main function to process all courses
-def process_courses(courses_base_dir, course_names, file_extension):
-    for course_folder in os.listdir(courses_base_dir):
-        course_path = os.path.join(courses_base_dir, course_folder)
-        
-        # If the folder is a course directory, process it
-        if course_folder in course_names:
-            course_name = course_names[course_folder]
-            print(f"Processing course: {course_name}")
-            
-            # Move all .mp4 files from subdirectories to the root directory
-            move_files_to_root(course_path, file_extension)
-            
-            # Rename files in the root directory
-            rename_files_in_directory(course_path, course_name, file_extension)
-            
-            # Remove any empty subdirectories
-            remove_empty_subdirs(course_path)
+def process_courses(courses_base_dir, courses, file_extension):
+    for course_name, year in courses.items():
+        # Get the new course directory name based on the convention
+        new_course_dir_name = get_course_directory_name(course_name, year)
+        new_course_path = os.path.join(courses_base_dir, new_course_dir_name)
+
+        # Create the new course directory if it doesn't exist
+        create_course_directory(new_course_path)
+
+        # Define the old course directory paths (assuming old folder names are different)
+        old_course_dir_name = f"{course_name}Course" if course_name != "Docker" else "Docker_2024"  # Adjust if needed
+        old_course_path = os.path.join(courses_base_dir, old_course_dir_name)
+
+        # Move files from the old directory to the new one
+        if os.path.exists(old_course_path):
+            move_files_to_new_directory(old_course_path, new_course_path, file_extension)
+
+            # Check if all files were moved and remove the old directory if it's empty
+            remove_old_folder_if_empty(old_course_path)
+        else:
+            print(f"Old course folder not found: {old_course_path}")
 
 # Run the process for all courses
-process_courses(courses_base_dir, course_names, file_extension)
+process_courses(courses_base_dir, courses, file_extension)
